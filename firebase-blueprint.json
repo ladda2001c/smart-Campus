@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "A user of the Smart Campus RBRU application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "email": { "type": "string", "format": "email", "description": "The user's RBRU email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "photoURL": { "type": "string", "format": "uri", "description": "The user's profile photo URL." },
+        "role": { "type": "string", "enum": ["student", "staff", "admin"], "description": "The user's role in the system." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user account was created." }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt"]
+    },
+    "booking": {
+      "title": "Booking",
+      "description": "A meeting room booking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "roomName": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "cancelled"] }
+      },
+      "required": ["userId", "title", "date", "roomName", "startTime", "endTime", "status"]
+    },
+    "teacher": {
+      "title": "Teacher",
+      "description": "A teacher/staff member of RBRU.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "department": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "active_session": {
+      "title": "Active Session",
+      "description": "An active attendance session.",
+      "type": "object",
+      "properties": {
+        "subject": { "type": "string" },
+        "section": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subject", "section", "location", "status", "createdAt"]
+    },
+    "attendance": {
+      "title": "Attendance",
+      "description": "A student attendance record.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "subject": { "type": "string" },
+        "section": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "status": { "type": "string", "enum": ["present"] }
+      },
+      "required": ["studentId", "subject", "section", "timestamp", "location", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile information."
+    },
+    "/bookings/{bookingId}": {
+      "schema": "booking",
+      "description": "Meeting room bookings."
+    },
+    "/teachers/{email}": {
+      "schema": "teacher",
+      "description": "List of authorized teachers."
+    },
+    "/active_sessions/{sessionId}": {
+      "schema": "active_session",
+      "description": "Active attendance sessions."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "attendance",
+      "description": "Student attendance records."
+    }
+  }
+}

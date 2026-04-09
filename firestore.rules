@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches auth.uid)
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required, email format)
+    //   - displayName: string (required)
+    //   - photoURL: string (optional)
+    //   - role: string (required, ['student', 'staff', 'admin'])
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: bookings
+    // Document ID: {bookingId}
+    // Fields:
+    //   - userId: string (required, matches owner)
+    //   - roomName: string (required)
+    //   - startTime: timestamp (required)
+    //   - endTime: timestamp (required)
+    //   - status: string (required, ['pending', 'confirmed', 'cancelled'])
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "ladda.c@rbru.ac.th" && request.auth.token.email_verified == true) ||
+        request.auth.token.email in ["admin1@rbru.ac.th", "admin2@rbru.ac.th", "admin3@rbru.ac.th"]
+      );
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@rbru\\.ac\\.th$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == userId &&
+               isValidEmail(data.email) &&
+               data.displayName is string && data.displayName.size() > 0 &&
+               data.role in ['student', 'staff', 'admin'] &&
+               data.createdAt is timestamp;
+      }
+
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'student';
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role;
+    }
+
+    match /bookings/{bookingId} {
+      function isValidBooking(data) {
+        return data.userId == request.auth.uid &&
+               data.title is string && data.title.size() > 0 &&
+               data.date is string &&
+               data.roomName is string && data.roomName.size() > 0 &&
+               data.startTime is string &&
+               data.endTime is string &&
+               data.status in ['pending', 'approved', 'cancelled'];
+      }
+
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidBooking(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && isValidBooking(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /teachers/{email} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /active_sessions/{sessionId} {
+      function isTeacher() {
+        return isAuthenticated() && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']
+        );
+      }
+
+      function isValidSession(data) {
+        return data.subject is string && data.subject.size() > 0 &&
+               data.section is string && data.section.size() > 0 &&
+               data.location.lat is number && data.location.lng is number &&
+               data.status in ['active', 'inactive'] &&
+               data.createdAt is timestamp;
+      }
+
+      allow read: if isAuthenticated();
+      allow write: if isTeacher() && isValidSession(request.resource.data);
+    }
+
+    match /attendance/{attendanceId} {
+      function isValidAttendance(data) {
+        return data.studentId is string && data.studentId.size() > 0 &&
+               data.subject is string && data.subject.size() > 0 &&
+               data.section is string && data.section.size() > 0 &&
+               data.timestamp is timestamp &&
+               data.location.lat is number && data.location.lng is number &&
+               data.status == 'present';
+      }
+
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher']
+      );
+      allow create: if isAuthenticated() && isValidAttendance(request.resource.data);
+    }
+  }
+}

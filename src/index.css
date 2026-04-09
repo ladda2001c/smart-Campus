@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-soft: #FDF2F8;
+  --color-brand-main: #EC4899;
+  --color-brand-dark: #BE185D;
+  --color-surface: #FFFFFF;
+}
+
+:root {
+  --background: #FDF2F8; /* สีชมพูอ่อนเหมือนในรูป */
+  --foreground: #1E293B;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* เอฟเฟกต์วงกลมจางๆ ด้านหลังแบบในรูป */
+.bg-circle-gradient {
+  background: radial-gradient(circle, rgba(252,231,243,1) 0%, rgba(253,242,248,0) 70%);
+}
